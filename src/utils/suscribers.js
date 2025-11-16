@@ -1,6 +1,6 @@
 import { store, updateStore } from '../store/appkitStore'
 import { updateStateDisplay, updateTheme, updateButtonVisibility } from './dom'
-import { polygon, mainnet } from '@reown/appkit/networks'
+import { sepolia, mainnet } from '@reown/appkit/networks'
 
 export const initializeSubscribers = (modal) => {
   modal.subscribeProviders(state => {
@@ -18,9 +18,8 @@ export const initializeSubscribers = (modal) => {
     
     const switchNetworkBtn = document.getElementById('switch-network')
     if (switchNetworkBtn) {
-      switchNetworkBtn.textContent = `Switch to ${
-        state?.chainId === polygon.id ? 'Mainnet' : 'Polygon'
-      }`
+      // If currently Sepolia, show option to switch to Mainnet, otherwise show Sepolia
+      switchNetworkBtn.textContent = `Switch to ${state?.chainId === sepolia.id ? 'Mainnet' : 'Sepolia'}`
     }
   })
 

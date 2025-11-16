@@ -10,10 +10,11 @@ if (!projectId) {
 
 // Default networks: prefer Sepolia first (default chain)
 // Use testnet only (Sepolia)
-export const networks = [sepolia]
+// Include Sepolia and Mainnet (allow using Mainnet)
+export const networks = [mainnet, sepolia]
 
 // re-export named networks for other modules
-export { sepolia }
+export { mainnet, sepolia }
 
 //Set up the Wagmi Adapter (Config)
 export const wagmiAdapter = new WagmiAdapter({
