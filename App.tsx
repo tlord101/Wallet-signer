@@ -1,32 +1,29 @@
 
-
 import React, { useState, useEffect } from 'react';
-import { createWeb3Modal, defaultWagmiConfig, useWeb3Modal } from '@web3modal/wagmi/react';
-import { WagmiConfig, useAccount, useSignMessage, useSendTransaction, useWaitForTransactionReceipt } from 'wagmi';
+import { WagmiProvider, useAccount, useSignMessage, useSendTransaction, useWaitForTransactionReceipt, createConfig, http } from 'wagmi';
 import { arbitrum, mainnet, polygon } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CheckCircle, XCircle, Loader2 as Loader, Clipboard, Check, Wallet } from 'lucide-react';
 import { parseEther } from 'viem';
+import { KitProvider, ConnectButton } from '@reown/appkit';
+import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
 
 // 1. Get projectId from https://cloud.walletconnect.com
 // FIX: Explicitly type `projectId` as a string to resolve a TypeScript comparison error.
 const projectId: string = 'f340171a355aad487eb6daa39b4b6c10';
 
 // 2. Create wagmiConfig
-const metadata = {
-  name: 'Web3 Action Requester',
-  description: 'A dApp demonstrating WalletConnect v2, Wagmi, auto-signing, and transactions.',
-  url: 'https://web3modal.com',
-  icons: ['https://avatars.githubusercontent.com/u/37784886']
-};
+const chains = [mainnet, polygon, arbitrum] as const;
+const wagmiConfig = createConfig({
+  chains,
+  transports: {
+    [mainnet.id]: http(),
+    [polygon.id]: http(),
+    [arbitrum.id]: http(),
+  },
+});
 
-const chains = [mainnet, polygon, arbitrum];
-const wagmiConfig = defaultWagmiConfig({ chains, projectId, metadata });
-
-// 3. Create modal
-createWeb3Modal({ wagmiConfig, projectId, chains });
-
-// 4. Create QueryClient
+// 3. Create QueryClient
 const queryClient = new QueryClient();
 
 // Main App Component
@@ -37,11 +34,17 @@ function App() {
   }
 
   return (
-    <WagmiConfig config={wagmiConfig}>
+    <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        <WalletDapp />
+        <KitProvider
+          adapter={new WagmiAdapter({ config: wagmiConfig, projectId })}
+          themeMode="dark"
+          appName="Web3 Action Requester"
+        >
+          <WalletDapp />
+        </KitProvider>
       </QueryClientProvider>
-    </WagmiConfig>
+    </WagmiProvider>
   );
 }
 
@@ -167,7 +170,6 @@ const ErrorDisplay = ({ label, message }) => (
 
 // Main Dapp UI component
 function WalletDapp() {
-  const { open } = useWeb3Modal();
   const { address, isConnected } = useAccount();
   
   const [hasAttemptedSign, setHasAttemptedSign] = useState(false);
@@ -266,21 +268,9 @@ function WalletDapp() {
           <ProcessStep title="3. Send Transaction" status={transactionStatus} details={isSending ? 'Check Wallet' : isConfirming ? 'Confirming...' : isConfirmed ? 'Success' : (sendTransactionError || confirmError) ? 'Failed' : 'Pending'}/>
         </div>
         
-        {!isConnected ? (
-           <button 
-              onClick={() => open()} 
-              className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:opacity-90 text-white font-bold py-3 px-4 rounded-lg text-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-cyan-400/50"
-            >
-              Connect Wallet
-            </button>
-        ) : (
-            <button 
-              onClick={() => open()} 
-              className="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition-all duration-300"
-            >
-              Manage Connection
-            </button>
-        )}
+        <div className="flex justify-center">
+          <ConnectButton />
+        </div>
 
         <div className="space-y-4 pt-4 border-t border-gray-700/50">
           {signature && <ResultDisplay label="Signature Result" value={signature} />}
@@ -293,7 +283,7 @@ function WalletDapp() {
 
       </div>
       <footer className="text-center mt-8 text-gray-500 text-sm">
-          <p>Powered by WalletConnect, Wagmi, & React</p>
+          <p>Powered by Reown, Wagmi, & React</p>
       </footer>
     </div>
   );
