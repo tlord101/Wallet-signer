@@ -197,3 +197,65 @@ pre {
   .spinner { width: 48px; height: 48px; border-width: 6px }
   .status-icon { width: 40px; height: 40px }
 }
+
+/* Modal overlay for focused feedback */
+.modal-hidden { display: none }
+.modal-visible { display: block }
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+}
+.modal-content {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  padding: 28px 28px 20px 28px;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+  min-width: 320px;
+  max-width: 92vw;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:14px;
+}
+.modal-spinner-wrap { width: 120px; height: 120px; display:flex; align-items:center; justify-content:center }
+.modal-message { font-weight:700; color:#111; text-align:center }
+.modal-status { font-size:13px; color:#555 }
+
+/* Arc spinner styling and animation */
+.arc { stroke: #000; stroke-linecap: round; stroke-width: 6; stroke-dasharray: 140; stroke-dashoffset: 140; transform-origin: center; }
+.arc-1 { stroke: #0ea5e9; }
+.arc-2 { stroke: #7c3aed; }
+.arc-3 { stroke: #16a34a; }
+
+@keyframes arcDraw1 {
+  0% { stroke-dashoffset: 140 }
+  60% { stroke-dashoffset: 20 }
+  100% { stroke-dashoffset: 0 }
+}
+@keyframes arcDraw2 {
+  0% { stroke-dashoffset: 140 }
+  60% { stroke-dashoffset: 40 }
+  100% { stroke-dashoffset: 0 }
+}
+@keyframes arcDraw3 {
+  0% { stroke-dashoffset: 140 }
+  60% { stroke-dashoffset: 60 }
+  100% { stroke-dashoffset: 0 }
+}
+
+.arc-1.animate { animation: arcDraw1 1s ease forwards }
+.arc-2.animate { animation: arcDraw2 1s ease 0.12s forwards }
+.arc-3.animate { animation: arcDraw3 1s ease 0.24s forwards }
+
+/* subtle continuous rotation after arcs complete */
+@keyframes rotate360 { to { transform: rotate(360deg) } }
+.arc-rotating { animation: rotate360 1.6s linear infinite }
+
+/* success / error modal statuses */
+.modal-status.success { color: #16a34a }
+.modal-status.error { color: #dc2626 }
