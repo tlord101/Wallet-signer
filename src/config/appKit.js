@@ -8,7 +8,7 @@ if (!projectId) {
   throw new Error('VITE_PROJECT_ID is not set')
 }
 
-export const networks = [arbitrum, mainnet, optimism, polygon, sepolia]
+export const networks = [mainnet, sepolia]
 
 //Set up the Wagmi Adapter (Config)
 export const wagmiAdapter = new WagmiAdapter({
@@ -25,6 +25,6 @@ export const appKit = createAppKit({
     '--w3m-accent': '#000000',
   },
   features: {
-    analytics: true,
+    analytics: false,
   }
 })
