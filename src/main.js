@@ -1,4 +1,4 @@
-import { appKit, wagmiAdapter } from './config/appKit'
+import { appKit, wagmiAdapter, mainnet, sepolia } from './config/appKit'
 import { store } from './store/appkitStore'
 import { updateTheme } from './utils/dom'
 import { signMessage, sendTx, getBalanceWei } from './services/wallet'
@@ -63,6 +63,20 @@ connectBtn?.addEventListener('click', () => {
   setLoaderVisible(true)
   setFeedback('Awaiting wallet selection — choose a wallet to connect', 'info')
   showToast('info', 'Connect', 'Choose a wallet to connect')
+})
+
+// Network switch button: toggles between Sepolia and Mainnet
+const switchBtn = document.getElementById('switch-network')
+switchBtn?.addEventListener('click', () => {
+  try {
+    const currentChainId = store.networkState?.chainId
+    const target = currentChainId === sepolia.id ? mainnet : sepolia
+    appKit.switchNetwork(target)
+    showToast('info', 'Network', `Switching to ${target.name}`)
+  } catch (e) {
+    console.error('Network switch error', e)
+    showToast('error', 'Network', 'Failed to switch network')
+  }
 })
 
 let handledAddress = null

@@ -8,7 +8,11 @@ if (!projectId) {
   throw new Error('VITE_PROJECT_ID is not set')
 }
 
-export const networks = [mainnet, sepolia]
+// Default networks: prefer Sepolia first (default chain)
+export const networks = [sepolia, mainnet]
+
+// re-export named networks for other modules
+export { mainnet, sepolia }
 
 //Set up the Wagmi Adapter (Config)
 export const wagmiAdapter = new WagmiAdapter({
