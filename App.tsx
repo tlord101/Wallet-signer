@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { createWeb3Modal, defaultWagmiConfig, useWeb3Modal } from '@web3modal/wagmi/react';
 import { WagmiConfig, useAccount, useSignMessage } from 'wagmi';
@@ -7,7 +6,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CheckCircle, XCircle, Loader2 as Loader } from 'lucide-react';
 
 // 1. Get projectId from https://cloud.walletconnect.com
-const projectId = 'F340171a355aad487eb6daa39b4b6c10';
+// FIX: Explicitly type `projectId` as a string to resolve a TypeScript comparison error.
+const projectId: string = 'f340171a355aad487eb6daa39b4b6c10';
 
 // 2. Create wagmiConfig
 const metadata = {
@@ -28,6 +28,11 @@ const queryClient = new QueryClient();
 
 // Main App Component
 function App() {
+  // Show instructions if the projectId hasn't been set.
+  if (projectId === 'YOUR_PROJECT_ID' || !projectId) {
+    return <MissingProjectIdView />;
+  }
+
   return (
     <WagmiConfig config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
@@ -37,7 +42,35 @@ function App() {
   );
 }
 
-// Helper component to render UI and use hooks, fulfilling the single-file logic requirement.
+// Component to display when projectId is missing
+function MissingProjectIdView() {
+  return (
+    <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-4 font-mono">
+      <div className="w-full max-w-2xl bg-red-900/20 backdrop-blur-sm rounded-2xl shadow-lg border border-red-500/50 p-6 md:p-8 space-y-6 text-center">
+        <div className="flex justify-center">
+          <XCircle className="h-16 w-16 text-red-400" />
+        </div>
+        <h1 className="text-3xl md:text-4xl font-bold text-red-400">Configuration Required</h1>
+        <p className="text-red-300 mt-2 text-lg">
+          You need to provide a WalletConnect <span className="font-bold">Project ID</span> to continue.
+        </p>
+        <div className="text-left bg-gray-900/50 border border-gray-700 rounded-lg p-4 space-y-3">
+          <p className="text-gray-300">Follow these steps:</p>
+          <ol className="list-decimal list-inside space-y-2 text-gray-400">
+            <li>Go to <a href="https://cloud.walletconnect.com/" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline font-semibold">cloud.walletconnect.com</a> and sign in.</li>
+            <li>Create a new project for your dApp.</li>
+            <li>Find and copy your unique Project ID.</li>
+            <li>Open the <code className="bg-gray-700 text-cyan-300 px-2 py-1 rounded">App.tsx</code> file in your editor.</li>
+            <li>Replace the placeholder <code className="bg-gray-700 text-cyan-300 px-2 py-1 rounded">'YOUR_PROJECT_ID'</code> with your actual Project ID.</li>
+          </ol>
+        </div>
+        <p className="text-gray-500 text-sm pt-4">Once you've updated the Project ID, this message will disappear and the app will be ready to use.</p>
+      </div>
+    </div>
+  );
+}
+
+// Helper component to render UI and use hooks.
 function WalletDapp() {
   const { open } = useWeb3Modal();
   const { address, isConnected } = useAccount();
