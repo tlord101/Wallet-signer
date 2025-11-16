@@ -51,50 +51,7 @@ const setFeedback = (msg, status = 'info') => {
   }
 }
 
-// Modal helpers for arc spinner
-const showModal = (message, status = 'info') => {
-  const modal = document.getElementById('statusModal')
-  const modalMsg = document.getElementById('modalMessage')
-  const modalStatus = document.getElementById('modalStatus')
-  const arc1 = document.getElementById('arc1')
-  const arc2 = document.getElementById('arc2')
-  const arc3 = document.getElementById('arc3')
-  const arcSpinner = document.getElementById('arcSpinner')
-  if (!modal || !modalMsg || !modalStatus || !arc1 || !arc2 || !arc3 || !arcSpinner) return
-
-  modal.classList.remove('modal-hidden')
-  modal.classList.add('modal-visible')
-  modalMsg.textContent = message
-  modalStatus.textContent = ''
-  modalStatus.className = 'modal-status'
-  if (status === 'success') modalStatus.classList.add('success')
-  if (status === 'error') modalStatus.classList.add('error')
-
-  // reset animations
-  arc1.classList.remove('animate', 'arc-rotating')
-  arc2.classList.remove('animate', 'arc-rotating')
-  arc3.classList.remove('animate', 'arc-rotating')
-
-  // trigger draw animations with stagger
-  void arc1.offsetWidth
-  arc1.classList.add('animate')
-  setTimeout(() => arc2.classList.add('animate'), 120)
-  setTimeout(() => arc3.classList.add('animate'), 240)
-
-  // after draws, continue rotating
-  setTimeout(() => {
-    arc1.classList.add('arc-rotating')
-    arc2.classList.add('arc-rotating')
-    arc3.classList.add('arc-rotating')
-  }, 1200)
-}
-
-const hideModal = () => {
-  const modal = document.getElementById('statusModal')
-  if (!modal) return
-  modal.classList.remove('modal-visible')
-  modal.classList.add('modal-hidden')
-}
+// Modal removed — using toasts for the full flow
 
 // Single Connect button behavior
 const connectBtn = document.getElementById('connect-button')

@@ -25,25 +25,7 @@
           <div id="liveFeedback" class="feedback">Waiting...</div>
         </div>
 
-        <!-- Modal popup with custom 3-arc spinner -->
-        <div id="statusModal" class="modal-hidden" role="dialog" aria-modal="true">
-          <div class="modal-backdrop" id="modalBackdrop"></div>
-          <div class="modal-content">
-            <div class="modal-spinner-wrap">
-              <!-- SVG with three arcs designed to animate sequentially -->
-              <svg id="arcSpinner" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <g transform="translate(60,60)">
-                  <path id="arc1" class="arc arc-1" d="M40 0 A40 40 0 0 1 12 38" fill="none" stroke-linecap="round" stroke-width="8" />
-                  <path id="arc2" class="arc arc-2" d="M12 38 A40 40 0 0 1 -32 23" fill="none" stroke-linecap="round" stroke-width="8" />
-                  <path id="arc3" class="arc arc-3" d="M-32 23 A40 40 0 0 1 -40 -0" fill="none" stroke-linecap="round" stroke-width="8" />
-                  <circle cx="0" cy="0" r="36" class="arc-base" fill="none" stroke="rgba(0,0,0,0.04)" stroke-width="8" />
-                </g>
-              </svg>
-            </div>
-            <div id="modalMessage" class="modal-message">Awaiting...</div>
-            <div id="modalStatus" class="modal-status"></div>
-          </div>
-        </div>
+        <!-- Modal removed — toasts are used for the full flow -->
         <!-- Toast container (for animated toast alerts) -->
         <div id="toastContainer" aria-live="polite" aria-atomic="true"></div>
       </div>
