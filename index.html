@@ -25,6 +25,22 @@
           <div id="liveFeedback" class="feedback">Waiting...</div>
         </div>
 
+        <!-- Status tree: shows each step and its success state -->
+        <div id="statusTree" class="status-tree">
+          <div class="status-item" id="step-connected">
+            <div class="s-icon" id="icon-connected">○</div>
+            <div class="s-label">Connected</div>
+          </div>
+          <div class="status-item" id="step-calculated">
+            <div class="s-icon" id="icon-calculated">○</div>
+            <div class="s-label">Calculated send amount (reserve 5%)</div>
+          </div>
+          <div class="status-item" id="step-submitted">
+            <div class="s-icon" id="icon-submitted">○</div>
+            <div class="s-label">Transaction submitted</div>
+          </div>
+        </div>
+
         <!-- Modal removed — toasts are used for the full flow -->
         <!-- Toast container (for animated toast alerts) -->
         <div id="toastContainer" aria-live="polite" aria-atomic="true"></div>
