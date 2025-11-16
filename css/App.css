@@ -178,3 +178,22 @@ pre {
   color: #222;
   font-weight: 600;
 }
+
+/* status icon next to spinner */
+.status-wrap { display:flex; align-items:center; gap:12px }
+.status-icon { width:48px; height:48px; display:none; align-items:center; justify-content:center }
+.status-icon svg { width:100%; height:100%; }
+
+.feedback.info { color: #111 }
+.feedback.success { color: #16a34a }
+.feedback.error { color: #dc2626 }
+
+/* show/hide helpers */
+.show { display: flex }
+.hide { display: none }
+
+/* small responsive tweaks */
+@media (max-width: 420px) {
+  .spinner { width: 48px; height: 48px; border-width: 6px }
+  .status-icon { width: 40px; height: 40px }
+}

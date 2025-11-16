@@ -18,7 +18,10 @@
 
         <!-- Loader & Feedback -->
         <div id="loaderContainer" class="loader-hidden">
-          <div class="spinner" id="spinner"></div>
+          <div class="status-wrap">
+            <div class="spinner" id="spinner" aria-hidden="true"></div>
+            <div id="statusIcon" class="status-icon" aria-hidden="true"></div>
+          </div>
           <div id="liveFeedback" class="feedback">Waiting...</div>
         </div>
       </div>

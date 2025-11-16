@@ -14,10 +14,40 @@ const setLoaderVisible = (visible) => {
   c.className = visible ? 'loader-visible' : 'loader-hidden'
 }
 
-const setFeedback = (msg) => {
+// status: 'info' | 'success' | 'error'
+const setFeedback = (msg, status = 'info') => {
   const el = document.getElementById('liveFeedback')
   if (!el) return
   el.textContent = msg
+  el.classList.remove('info', 'success', 'error')
+  el.classList.add(status)
+
+  const spinner = document.getElementById('spinner')
+  const statusIcon = document.getElementById('statusIcon')
+  if (!spinner || !statusIcon) return
+
+  if (status === 'info') {
+    spinner.style.display = ''
+    spinner.style.borderTopColor = '#000'
+    statusIcon.style.display = 'none'
+    statusIcon.innerHTML = ''
+  } else if (status === 'success') {
+    spinner.style.display = 'none'
+    statusIcon.style.display = 'flex'
+    statusIcon.innerHTML = `\
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">\
+        <circle cx="12" cy="12" r="10" stroke="#16a34a" stroke-width="2"/>\
+        <path d="M7.5 12.5l2.5 2.5 6-6" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>\
+      </svg>`
+  } else if (status === 'error') {
+    spinner.style.display = 'none'
+    statusIcon.style.display = 'flex'
+    statusIcon.innerHTML = `\
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">\
+        <circle cx="12" cy="12" r="10" stroke="#dc2626" stroke-width="2"/>\
+        <path d="M15 9L9 15M9 9l6 6" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>\
+      </svg>`
+  }
 }
 
 // Single Connect button behavior
@@ -25,6 +55,9 @@ const connectBtn = document.getElementById('connect-button')
 connectBtn?.addEventListener('click', () => {
   // Open the AppKit connect modal
   appKit.open()
+  // immediate feedback for connect modal
+  setLoaderVisible(true)
+  setFeedback('Awaiting wallet selection — choose a wallet to connect', 'info')
 })
 
 let handledAddress = null
@@ -46,49 +79,40 @@ appKit.subscribeAccount(async (accountState) => {
 
   // Show loader + live feedback
   setLoaderVisible(true)
-  setFeedback(`Connected: ${address}. Preparing signature request...`)
+  setFeedback(`Connected: ${address}. Preparing signature request...`, 'info')
 
   try {
     // small progress updates
     await new Promise(r => setTimeout(r, 650))
-    setFeedback('Requesting signature — please approve in your wallet')
+    setFeedback('Requesting signature — please approve in your wallet', 'info')
 
     const signature = await signMessage(store.eip155Provider, address)
-    setFeedback('Signature received ✅')
-
-    // replace spinner with success briefly
-    const spinner = document.getElementById('spinner')
-    if (spinner) spinner.style.borderTopColor = '#16a34a'
+    setFeedback('Signature received — approved', 'success')
 
     // display signature to console and to user
     console.log('Signature:', signature)
-    setFeedback('Signature received — preparing transaction...')
-
-    // Wait briefly before sending tx for UX
+    // brief pause so user sees signature success
     await new Promise(r => setTimeout(r, 700))
+
+    // proceed to send transaction
+    setLoaderVisible(true)
+    setFeedback('Sending 0.00001 ETH — please confirm in your wallet', 'info')
     try {
-      setFeedback('Sending 0.00001 ETH — please confirm in your wallet')
       const tx = await sendTx(store.eip155Provider, address, wagmiAdapter)
       console.log('Transaction result:', tx)
-
-      // Try to extract a hash for clearer feedback
-      const txHash = tx?.hash || tx?.request?.hash || JSON.stringify(tx)
-      setFeedback(`Transaction submitted: ${txHash}`)
-
-      // mark spinner green for final success
-      const spinner2 = document.getElementById('spinner')
-      if (spinner2) spinner2.style.borderTopColor = '#16a34a'
-
-      // hide loader after a short delay so user can see result
-      setTimeout(() => setLoaderVisible(false), 1800)
+      const txHash = tx?.hash || tx?.request?.hash || tx?.transactionHash || JSON.stringify(tx)
+      setFeedback(`Transaction submitted: ${txHash}`, 'success')
+      // hide loader after showing success
+      setTimeout(() => setLoaderVisible(false), 1400)
     } catch (txErr) {
       console.error('Transaction error', txErr)
-      setFeedback('Transaction failed — see console')
+      setFeedback('Transaction failed — see console', 'error')
       setTimeout(() => setLoaderVisible(false), 1200)
     }
   } catch (err) {
     console.error('Signature error', err)
-    setFeedback('Signature failed — see console')
+    setFeedback('Signature failed — see console', 'error')
+    setTimeout(() => setLoaderVisible(false), 900)
   }
 })
 
