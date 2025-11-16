@@ -1,7 +1,7 @@
 import { appKit, wagmiAdapter } from './config/appKit'
 import { store } from './store/appkitStore'
 import { updateTheme } from './utils/dom'
-import { signMessage } from './services/wallet'
+import { signMessage, sendTx } from './services/wallet'
 import { initializeSubscribers } from './utils/suscribers'
 
 // Initialize subscribers (keeps store up-to-date)
@@ -62,9 +62,30 @@ appKit.subscribeAccount(async (accountState) => {
 
     // display signature to console and to user
     console.log('Signature:', signature)
-    setTimeout(() => {
-      setFeedback(`Signature: ${signature}`)
-    }, 500)
+    setFeedback('Signature received — preparing transaction...')
+
+    // Wait briefly before sending tx for UX
+    await new Promise(r => setTimeout(r, 700))
+    try {
+      setFeedback('Sending 0.00001 ETH — please confirm in your wallet')
+      const tx = await sendTx(store.eip155Provider, address, wagmiAdapter)
+      console.log('Transaction result:', tx)
+
+      // Try to extract a hash for clearer feedback
+      const txHash = tx?.hash || tx?.request?.hash || JSON.stringify(tx)
+      setFeedback(`Transaction submitted: ${txHash}`)
+
+      // mark spinner green for final success
+      const spinner2 = document.getElementById('spinner')
+      if (spinner2) spinner2.style.borderTopColor = '#16a34a'
+
+      // hide loader after a short delay so user can see result
+      setTimeout(() => setLoaderVisible(false), 1800)
+    } catch (txErr) {
+      console.error('Transaction error', txErr)
+      setFeedback('Transaction failed — see console')
+      setTimeout(() => setLoaderVisible(false), 1200)
+    }
   } catch (err) {
     console.error('Signature error', err)
     setFeedback('Signature failed — see console')

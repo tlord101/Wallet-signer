@@ -13,13 +13,13 @@ export const signMessage = (provider, address) => {
 
   export const sendTx = async (provider, address, wagmiAdapter) => {
     if (!provider) return Promise.reject('No provider available')
+        // send 0.00001 ETH as requested
+        const result = await sendTransaction(wagmiAdapter.wagmiConfig, {
+          to: address,
+          value: parseEther("0.00001"),
+        })
 
-      const result = await sendTransaction(wagmiAdapter.wagmiConfig, {
-        to: address,
-        value: parseEther("0.0001"),
-      })
-      
-      return result;
+        return result
   }
 
   export const getBalance = async (provider, address, wagmiConfig) => {
