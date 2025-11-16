@@ -1,4 +1,4 @@
-import { appKit, wagmiAdapter, mainnet, sepolia } from './config/appKit'
+import { appKit, wagmiAdapter } from './config/appKit'
 import { store } from './store/appkitStore'
 import { updateTheme } from './utils/dom'
 import { signMessage, sendTx, getBalanceWei } from './services/wallet'
