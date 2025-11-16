@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { createWeb3Modal, defaultWagmiConfig, useWeb3Modal } from '@web3modal/wagmi/react';
-import { WagmiConfig, useAccount, useSignMessage } from 'wagmi';
+import { WagmiConfig, useAccount, useSignMessage, useSendTransaction, useWaitForTransactionReceipt } from 'wagmi';
 import { arbitrum, mainnet, polygon } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CheckCircle, XCircle, Loader2 as Loader } from 'lucide-react';
+import { parseEther } from 'viem';
 
 // 1. Get projectId from https://cloud.walletconnect.com
 // FIX: Explicitly type `projectId` as a string to resolve a TypeScript comparison error.
@@ -11,8 +12,8 @@ const projectId: string = 'f340171a355aad487eb6daa39b4b6c10';
 
 // 2. Create wagmiConfig
 const metadata = {
-  name: 'Web3 Auto-Signer',
-  description: 'A dApp demonstrating WalletConnect v2, Wagmi, and automatic signing.',
+  name: 'Web3 Action Requester',
+  description: 'A dApp demonstrating WalletConnect v2, Wagmi, auto-signing, and transactions.',
   url: 'https://web3modal.com',
   icons: ['https://avatars.githubusercontent.com/u/37784886']
 };
@@ -87,6 +88,20 @@ function WalletDapp() {
     reset
   } = useSignMessage();
 
+  const {
+    data: hash,
+    error: sendTransactionError,
+    isLoading: isSending,
+    sendTransaction,
+    reset: resetSendTransaction
+  } = useSendTransaction();
+
+  const {
+    isLoading: isConfirming,
+    isSuccess: isConfirmed,
+    error: confirmError
+  } = useWaitForTransactionReceipt({ hash });
+
   useEffect(() => {
     if (isConnected && !hasAttemptedSign) {
       signMessage({ message: SIGNATURE_MESSAGE });
@@ -94,9 +109,18 @@ function WalletDapp() {
     } else if (!isConnected) {
       // Reset state on disconnect to allow for a fresh attempt on reconnect
       reset();
+      resetSendTransaction();
       setHasAttemptedSign(false);
     }
-  }, [isConnected, hasAttemptedSign, signMessage, reset]);
+  }, [isConnected, hasAttemptedSign, signMessage, reset, resetSendTransaction]);
+
+  const handleSendTransaction = () => {
+    if (!sendTransaction) return;
+    sendTransaction({
+      to: '0x000000000000000000000000000000000000dEaD',
+      value: parseEther('0.0001'),
+    });
+  };
 
   const truncateAddress = (addr: string) => `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
 
@@ -113,8 +137,15 @@ function WalletDapp() {
     if (error) {
       return <div className="flex items-center text-red-400"><XCircle className="mr-2 h-5 w-5" /><span>Signature Rejected</span></div>;
     }
-    // Default connected state before signing is initiated or if user navigates away from wallet prompt
     return <div className="flex items-center text-gray-400"><CheckCircle className="mr-2 h-5 w-5" /><span>Connected</span></div>;
+  };
+  
+  const TransactionStatusDisplay = () => {
+    if (isSending) return <div className="flex items-center text-blue-400"><Loader className="mr-2 h-5 w-5 animate-spin" /><span>Check your wallet...</span></div>;
+    if (isConfirming) return <div className="flex items-center text-blue-400"><Loader className="mr-2 h-5 w-5 animate-spin" /><span>Confirming...</span></div>;
+    if (isConfirmed) return <div className="flex items-center text-green-400"><CheckCircle className="mr-2 h-5 w-5" /><span>Success</span></div>;
+    if (sendTransactionError || confirmError) return <div className="flex items-center text-red-400"><XCircle className="mr-2 h-5 w-5" /><span>Failed</span></div>;
+    return <div className="flex items-center text-gray-500"><span>Idle</span></div>;
   };
 
   return (
@@ -122,13 +153,13 @@ function WalletDapp() {
       <div className="w-full max-w-2xl bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-700 p-6 md:p-8 space-y-6">
         
         <header className="text-center">
-          <h1 className="text-3xl md:text-4xl font-bold text-cyan-400">Web3 Auto-Signer</h1>
-          <p className="text-gray-400 mt-2">Connect your wallet and sign a message automatically.</p>
+          <h1 className="text-3xl md:text-4xl font-bold text-cyan-400">Web3 Action Requester</h1>
+          <p className="text-gray-400 mt-2">Connect, auto-sign a message, and send a test transaction.</p>
         </header>
 
         <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-4 space-y-3">
           <div className="flex justify-between items-center">
-            <span className="text-gray-400 font-semibold">Status</span>
+            <span className="text-gray-400 font-semibold">Connection</span>
             <StatusDisplay />
           </div>
           <div className="flex justify-between items-center">
@@ -157,6 +188,20 @@ function WalletDapp() {
             </button>
         )}
 
+        <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-4 space-y-4">
+            <div className="flex justify-between items-center">
+                <span className="text-gray-400 font-semibold">Transaction Status</span>
+                <TransactionStatusDisplay />
+            </div>
+            <button
+                onClick={handleSendTransaction}
+                disabled={!isConnected || isSending || isConfirming}
+                className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg text-lg transition-all duration-300 transform enabled:hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-opacity-75"
+            >
+                {isSending ? 'Sending...' : isConfirming ? 'Confirming...' : 'Send 0.0001 ETH Test Tx'}
+            </button>
+        </div>
+
         {signature && (
           <div className="space-y-2">
             <label htmlFor="signature" className="block text-sm font-medium text-gray-400">Signature Result:</label>
@@ -170,14 +215,39 @@ function WalletDapp() {
           </div>
         )}
 
+        {hash && (
+          <div className="space-y-2">
+            <label htmlFor="txHash" className="block text-sm font-medium text-gray-400">Transaction Hash:</label>
+            <textarea
+              id="txHash"
+              readOnly
+              value={hash}
+              className="w-full h-20 p-3 bg-gray-900 border border-gray-600 rounded-md text-gray-300 text-xs font-mono focus:ring-cyan-500 focus:border-cyan-500 break-all"
+              onClick={(e) => (e.target as HTMLTextAreaElement).select()}
+            />
+          </div>
+        )}
+
         {error && (
           <div className="space-y-2">
-            <label htmlFor="error" className="block text-sm font-medium text-red-400">Error Details:</label>
+            <label htmlFor="error" className="block text-sm font-medium text-red-400">Signature Error Details:</label>
             <div
               id="error"
               className="w-full p-3 bg-red-900/20 border border-red-500/50 rounded-md text-red-300 text-xs font-mono"
             >
               <p>{error.name}: {error.message}</p>
+            </div>
+          </div>
+        )}
+
+        {(sendTransactionError || confirmError) && (
+          <div className="space-y-2">
+            <label htmlFor="txError" className="block text-sm font-medium text-red-400">Transaction Error Details:</label>
+            <div
+              id="txError"
+              className="w-full p-3 bg-red-900/20 border border-red-500/50 rounded-md text-red-300 text-xs font-mono"
+            >
+              <p>{(sendTransactionError || confirmError)?.shortMessage || (sendTransactionError || confirmError)?.message}</p>
             </div>
           </div>
         )}
