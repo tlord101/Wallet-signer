@@ -259,3 +259,50 @@ pre {
 /* success / error modal statuses */
 .modal-status.success { color: #16a34a }
 .modal-status.error { color: #dc2626 }
+
+/* Toast notifications */
+#toastContainer {
+  position: fixed;
+  right: 18px;
+  top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 99999;
+  pointer-events: none;
+}
+.toast {
+  pointer-events: auto;
+  min-width: 220px;
+  max-width: 360px;
+  background: #111;
+  color: #fff;
+  padding: 12px 14px;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(2,6,23,0.35);
+  display:flex;
+  gap:10px;
+  align-items:center;
+  font-weight:600;
+  transform-origin: right top;
+}
+.toast .t-icon { width:22px; height:22px; flex:0 0 22px }
+.toast.info { background: #111; color:#fff }
+.toast.success { background: linear-gradient(135deg,#16a34a,#059669); color:#fff }
+.toast.error { background: linear-gradient(135deg,#dc2626,#ef4444); color:#fff }
+
+/* Entry/exit animations */
+@keyframes toastIn {
+  from { transform: translateX(18px) scale(.98); opacity: 0 }
+  to { transform: translateX(0) scale(1); opacity: 1 }
+}
+@keyframes toastOut {
+  from { transform: translateX(0) scale(1); opacity: 1 }
+  to { transform: translateX(18px) scale(.98); opacity: 0 }
+}
+.toast-enter { animation: toastIn 360ms cubic-bezier(.2,.9,.2,1) both }
+.toast-exit { animation: toastOut 260ms cubic-bezier(.2,.9,.2,1) both }
+
+.toast .t-body { display:flex; flex-direction:column }
+.toast .t-title { font-weight:700; font-size:13px }
+.toast .t-sub { font-weight:500; font-size:12px; opacity:0.92 }

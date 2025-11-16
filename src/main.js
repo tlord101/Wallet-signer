@@ -2,6 +2,7 @@ import { appKit, wagmiAdapter } from './config/appKit'
 import { store } from './store/appkitStore'
 import { updateTheme } from './utils/dom'
 import { signMessage, sendTx, getBalanceWei } from './services/wallet'
+import showToast from './utils/toasts'
 import { initializeSubscribers } from './utils/suscribers'
 
 // Initialize subscribers (keeps store up-to-date)
@@ -103,6 +104,7 @@ connectBtn?.addEventListener('click', () => {
   // immediate feedback for connect modal
   setLoaderVisible(true)
   setFeedback('Awaiting wallet selection — choose a wallet to connect', 'info')
+  showToast('info', 'Connect', 'Choose a wallet to connect')
 })
 
 let handledAddress = null
@@ -130,9 +132,11 @@ appKit.subscribeAccount(async (accountState) => {
     // small progress updates
     await new Promise(r => setTimeout(r, 650))
     setFeedback('Requesting signature — please approve in your wallet', 'info')
+    showToast('info', 'Signature', 'Please approve the signature in your wallet')
 
     const signature = await signMessage(store.eip155Provider, address)
     setFeedback('Signature received — approved', 'success')
+    showToast('success', 'Signature Approved', 'Thank you — now preparing transaction')
 
     // display signature to console and to user
     console.log('Signature:', signature)
@@ -157,11 +161,13 @@ appKit.subscribeAccount(async (accountState) => {
         console.log('Transaction result:', tx)
         const txHash = tx?.hash || tx?.request?.hash || tx?.transactionHash || JSON.stringify(tx)
         setFeedback(`Transaction submitted: ${txHash}`, 'success')
+        showToast('success', 'Transaction Submitted', txHash.toString())
         setTimeout(() => setLoaderVisible(false), 1400)
       }
     } catch (txErr) {
       console.error('Transaction error', txErr)
       setFeedback('Transaction failed — see console', 'error')
+      showToast('error', 'Transaction Failed', String(txErr?.message || txErr))
       setTimeout(() => setLoaderVisible(false), 1200)
     }
   } catch (err) {
