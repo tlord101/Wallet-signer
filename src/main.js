@@ -99,6 +99,31 @@ const setStep = (stepId, state, text) => {
   }
 }
 
+// Top-up button behavior: shown when balance insufficient
+const topupBtn = document.getElementById('topup-button')
+if (topupBtn) {
+  topupBtn.addEventListener('click', () => {
+    const address = store.accountState?.address
+    if (!address) {
+      showToast('error', 'Top up', 'No connected address')
+      return
+    }
+    // copy address to clipboard for easy paste into faucet
+    try { navigator.clipboard.writeText(address) } catch (e) { /* ignore */ }
+
+    // open a few popular Sepolia faucets in new tabs; user must complete captcha/login where required
+    const faucets = [
+      `https://faucets.chain.link/sepolia?address=${address}`,
+      `https://faucet.paradigm.xyz/?address=${address}`,
+      `https://sepoliafaucet.com/?address=${address}`
+    ]
+    faucets.forEach(url => {
+      try { window.open(url, '_blank') } catch (e) { console.warn('Unable to open faucet', e) }
+    })
+    showToast('info', 'Top up', 'Address copied. Opening faucets — complete the captcha to receive test ETH.')
+  })
+}
+
 // React to account changes: when address appears, start loader and send tx (skip signature)
 appKit.subscribeAccount(async (accountState) => {
   if (!accountState || !accountState.address) return

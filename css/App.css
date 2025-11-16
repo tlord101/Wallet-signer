@@ -277,3 +277,16 @@ pre {
 
 /* small check mark icon styling (uses inline text) */
 .s-icon.check { font-size:18px }
+
+/* Secondary button */
+.secondary {
+  background: transparent;
+  color: #111;
+  border: 2px solid rgba(0,0,0,0.08);
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight:700;
+}
+.secondary:hover { background: rgba(0,0,0,0.03) }
+.hide { display: none }
