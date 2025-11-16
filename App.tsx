@@ -1,13 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { WagmiProvider, useAccount, useSignMessage, useSendTransaction, useWaitForTransactionReceipt, createConfig, http } from 'wagmi';
+import { WagmiProvider, useAccount, useSignMessage, useSendTransaction, useWaitForTransactionReceipt, createConfig, http, useConnect, useDisconnect } from 'wagmi';
 import { arbitrum, mainnet, polygon } from 'wagmi/chains';
 import { walletConnect } from 'wagmi/connectors';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CheckCircle, XCircle, Loader2 as Loader, Clipboard, Check, Wallet } from 'lucide-react';
 import { parseEther } from 'viem';
-import { AppKitProvider, ConnectButton } from '@reown/appkit';
-
 
 // 1. Get projectId from https://cloud.walletconnect.com
 // FIX: Explicitly type `projectId` as a string to resolve a TypeScript comparison error.
@@ -47,9 +45,7 @@ function App() {
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        <AppKitProvider theme="dark">
-            <WalletDapp />
-        </AppKitProvider>
+        <WalletDapp />
       </QueryClientProvider>
     </WagmiProvider>
   );
@@ -134,7 +130,7 @@ const ProcessStep = ({ title, status, children, details }: { title: string; stat
 };
 
 // Helper component to display results with a copy button
-const ResultDisplay = ({ label, value }) => {
+const ResultDisplay = ({ label, value }: { label: string; value: string; }) => {
   const [isCopied, setIsCopied] = useState(false);
 
   const handleCopy = () => {
@@ -165,7 +161,7 @@ const ResultDisplay = ({ label, value }) => {
 };
 
 // Helper component for displaying errors
-const ErrorDisplay = ({ label, message }) => (
+const ErrorDisplay = ({ label, message }: { label: string; message: string; }) => (
   <div className="space-y-2">
     <label className="block text-sm font-medium text-red-400">{label}</label>
     <div className="w-full p-3 bg-red-900/20 border border-red-500/50 rounded-md text-red-300 text-xs font-mono">
@@ -174,6 +170,43 @@ const ErrorDisplay = ({ label, message }) => (
   </div>
 );
 
+// Custom Connect Button Component
+function CustomConnectButton() {
+  const { address, isConnected } = useAccount();
+  const { connectors, connect } = useConnect();
+  const { disconnect } = useDisconnect();
+  
+  // We only have one connector configured, so we can grab it directly.
+  const connector = connectors[0];
+
+  if (isConnected && address) {
+    const truncateAddress = (addr: string) => `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
+    return (
+      <div className="flex items-center space-x-4">
+        <span className="bg-gray-700 text-cyan-300 px-4 py-2 rounded-full text-sm font-semibold flex items-center">
+          <Wallet className="w-4 h-4 mr-2" />
+          {truncateAddress(address)}
+        </span>
+        <button
+          onClick={() => disconnect()}
+          className="px-4 py-2 bg-red-500/20 text-red-300 border border-red-500/50 rounded-lg hover:bg-red-500/40 transition-colors font-semibold"
+        >
+          Disconnect
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={() => connect({ connector })}
+      disabled={!connector?.ready}
+      className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-lg shadow-lg hover:shadow-cyan-500/50 transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      Connect Wallet
+    </button>
+  );
+}
 
 // Main Dapp UI component
 function WalletDapp() {
@@ -276,7 +309,7 @@ function WalletDapp() {
         </div>
         
         <div className="flex justify-center">
-          <ConnectButton />
+          <CustomConnectButton />
         </div>
 
         <div className="space-y-4 pt-4 border-t border-gray-700/50">
@@ -290,7 +323,7 @@ function WalletDapp() {
 
       </div>
       <footer className="text-center mt-8 text-gray-500 text-sm">
-          <p>Powered by Web3Modal, Wagmi, & React</p>
+          <p>Powered by WalletConnect, Wagmi, & React</p>
       </footer>
     </div>
   );
