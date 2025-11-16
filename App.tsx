@@ -1,10 +1,11 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { createWeb3Modal, defaultWagmiConfig, useWeb3Modal } from '@web3modal/wagmi/react';
 import { WagmiConfig, useAccount, useSignMessage, useSendTransaction, useWaitForTransactionReceipt } from 'wagmi';
 import { arbitrum, mainnet, polygon } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { CheckCircle, XCircle, Loader2 as Loader } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2 as Loader, Clipboard, Check, Wallet } from 'lucide-react';
 import { parseEther } from 'viem';
 
 // 1. Get projectId from https://cloud.walletconnect.com
@@ -72,7 +73,99 @@ function MissingProjectIdView() {
   );
 }
 
-// Helper component to render UI and use hooks.
+// FIX: Moved statusStyles outside the component to define a reusable Status type.
+// This improves type safety and allows us to fix the missing 'children' prop error by properly typing the component props.
+const statusStyles = {
+  idle: {
+    icon: <div className="h-5 w-5 rounded-full bg-gray-600 border-2 border-gray-500" />,
+    borderColor: 'border-gray-700',
+    textColor: 'text-gray-400',
+    detailsColor: 'text-gray-500'
+  },
+  pending: {
+    icon: <Loader className="h-5 w-5 animate-spin text-blue-400" />,
+    borderColor: 'border-blue-500/50',
+    textColor: 'text-blue-300',
+    detailsColor: 'text-blue-400'
+  },
+  success: {
+    icon: <CheckCircle className="h-5 w-5 text-green-400" />,
+    borderColor: 'border-green-500/50',
+    textColor: 'text-green-300',
+    detailsColor: 'text-green-400'
+  },
+  error: {
+    icon: <XCircle className="h-5 w-5 text-red-400" />,
+    borderColor: 'border-red-500/50',
+    textColor: 'text-red-300',
+    detailsColor: 'text-red-400'
+  },
+};
+type Status = keyof typeof statusStyles;
+
+
+// Helper component to render a step in the process
+const ProcessStep = ({ title, status, children, details }: { title: string; status: Status; children?: React.ReactNode; details: string; }) => {
+
+  const currentStyle = statusStyles[status];
+
+  return (
+    <div className={`bg-gray-900/50 border ${currentStyle.borderColor} rounded-lg p-4 transition-all`}>
+      <div className="flex justify-between items-center">
+        <div className="flex items-center space-x-3">
+          {currentStyle.icon}
+          <span className={`font-semibold ${currentStyle.textColor}`}>{title}</span>
+        </div>
+        <span className={`text-sm font-medium ${currentStyle.detailsColor}`}>{details}</span>
+      </div>
+      {children && <div className="mt-3 pl-8">{children}</div>}
+    </div>
+  );
+};
+
+// Helper component to display results with a copy button
+const ResultDisplay = ({ label, value }) => {
+  const [isCopied, setIsCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(value);
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
+  };
+
+  return (
+    <div className="space-y-2">
+      <label className="block text-sm font-medium text-gray-400">{label}</label>
+      <div className="relative">
+        <textarea
+          readOnly
+          value={value}
+          className="w-full h-24 p-3 pr-12 bg-gray-900 border border-gray-600 rounded-md text-gray-300 text-xs font-mono focus:ring-cyan-500 focus:border-cyan-500 break-all"
+        />
+        <button
+          onClick={handleCopy}
+          className="absolute top-2 right-2 p-2 bg-gray-700 hover:bg-gray-600 rounded-md text-gray-400 hover:text-white transition-colors"
+          aria-label="Copy to clipboard"
+        >
+          {isCopied ? <Check className="h-4 w-4 text-green-400" /> : <Clipboard className="h-4 w-4" />}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// Helper component for displaying errors
+const ErrorDisplay = ({ label, message }) => (
+  <div className="space-y-2">
+    <label className="block text-sm font-medium text-red-400">{label}</label>
+    <div className="w-full p-3 bg-red-900/20 border border-red-500/50 rounded-md text-red-300 text-xs font-mono">
+      <p>{message}</p>
+    </div>
+  </div>
+);
+
+
+// Main Dapp UI component
 function WalletDapp() {
   const { open } = useWeb3Modal();
   const { address, isConnected } = useAccount();
@@ -84,10 +177,10 @@ function WalletDapp() {
   
   const { 
     data: signature, 
-    error, 
+    error: signError, 
     isPending: isSigning, 
     signMessage,
-    reset
+    reset: resetSignMessage
   } = useSignMessage();
 
   const {
@@ -109,13 +202,12 @@ function WalletDapp() {
       signMessage({ message: SIGNATURE_MESSAGE });
       setHasAttemptedSign(true);
     } else if (!isConnected) {
-      // Reset state on disconnect to allow for a fresh attempt on reconnect
-      reset();
+      resetSignMessage();
       resetSendTransaction();
       setHasAttemptedSign(false);
       setHasAttemptedTransaction(false);
     }
-  }, [isConnected, hasAttemptedSign, signMessage, reset, resetSendTransaction]);
+  }, [isConnected, hasAttemptedSign, signMessage, resetSignMessage, resetSendTransaction]);
 
   useEffect(() => {
     if (signature && isConnected && !hasAttemptedTransaction && sendTransaction) {
@@ -129,59 +221,55 @@ function WalletDapp() {
 
   const truncateAddress = (addr: string) => `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
 
-  const StatusDisplay = () => {
-    if (!isConnected) {
-      return <div className="flex items-center text-yellow-400"><Loader className="mr-2 h-5 w-5 animate-spin" /><span>Awaiting Connection</span></div>;
-    }
-    if (isSigning) {
-      return <div className="flex items-center text-blue-400"><Loader className="mr-2 h-5 w-5 animate-spin" /><span>Check your wallet to sign...</span></div>;
-    }
-    if (signature) {
-      return <div className="flex items-center text-green-400"><CheckCircle className="mr-2 h-5 w-5" /><span>Signature Confirmed!</span></div>;
-    }
-    if (error) {
-      return <div className="flex items-center text-red-400"><XCircle className="mr-2 h-5 w-5" /><span>Signature Rejected</span></div>;
-    }
-    return <div className="flex items-center text-gray-400"><CheckCircle className="mr-2 h-5 w-5" /><span>Connected</span></div>;
+  // FIX: Added the 'Status' return type to ensure type consistency with the ProcessStep component.
+  const getStatus = (
+    isPending: boolean,
+    isSuccess: boolean,
+    isError: boolean,
+    isIdleCondition: boolean = false
+  ): Status => {
+    if (isPending) return 'pending';
+    if (isSuccess) return 'success';
+    if (isError) return 'error';
+    if (isIdleCondition) return 'idle';
+    return 'idle';
   };
   
-  const TransactionStatusDisplay = () => {
-    if (isSending) return <div className="flex items-center text-blue-400"><Loader className="mr-2 h-5 w-5 animate-spin" /><span>Check your wallet...</span></div>;
-    if (isConfirming) return <div className="flex items-center text-blue-400"><Loader className="mr-2 h-5 w-5 animate-spin" /><span>Confirming...</span></div>;
-    if (isConfirmed) return <div className="flex items-center text-green-400"><CheckCircle className="mr-2 h-5 w-5" /><span>Success</span></div>;
-    if (sendTransactionError || confirmError) return <div className="flex items-center text-red-400"><XCircle className="mr-2 h-5 w-5" /><span>Failed</span></div>;
-    if (signature) return <div className="flex items-center text-yellow-400"><Loader className="mr-2 h-5 w-5 animate-spin" /><span>Awaiting Transaction</span></div>;
-    return <div className="flex items-center text-gray-500"><span>Idle</span></div>;
-  };
-
+  const connectionStatus = getStatus(false, isConnected, false);
+  const signatureStatus = getStatus(isSigning, !!signature, !!signError, !isConnected);
+  const transactionStatus = getStatus(
+    isSending || isConfirming,
+    isConfirmed,
+    !!sendTransactionError || !!confirmError,
+    !signature
+  );
+  
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-4 font-mono">
-      <div className="w-full max-w-2xl bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-700 p-6 md:p-8 space-y-6">
+    <div className="min-h-screen text-white flex flex-col items-center justify-center p-4 font-mono">
+      <div className="w-full max-w-2xl bg-gray-800/30 backdrop-blur-xl rounded-2xl shadow-2xl shadow-cyan-500/10 border border-gray-700/50 p-6 md:p-8 space-y-8">
         
         <header className="text-center">
-          <h1 className="text-3xl md:text-4xl font-bold text-cyan-400">Web3 Action Requester</h1>
-          <p className="text-gray-400 mt-2">Connect, auto-sign a message, and send a test transaction.</p>
+          <h1 className="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Web3 Action Requester</h1>
+          <p className="text-gray-400 mt-3">Connect your wallet to auto-sign a message and send a test transaction.</p>
         </header>
 
-        <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-4 space-y-3">
-          <div className="flex justify-between items-center">
-            <span className="text-gray-400 font-semibold">Connection</span>
-            <StatusDisplay />
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-gray-400 font-semibold">Wallet</span>
-            {isConnected && address ? (
-              <span className="bg-gray-700 text-cyan-300 px-3 py-1 rounded-full text-sm font-medium">{truncateAddress(address)}</span>
-            ) : (
-              <span className="text-gray-500">Not Connected</span>
+        <div className="space-y-4">
+          <ProcessStep title="1. Connect Wallet" status={connectionStatus} details={isConnected ? 'Connected' : 'Awaiting'}>
+            {isConnected && address && (
+              <span className="bg-gray-700 text-cyan-300 px-3 py-1 rounded-full text-sm font-medium flex items-center w-fit">
+                <Wallet className="w-4 h-4 mr-2"/>
+                {truncateAddress(address)}
+              </span>
             )}
-          </div>
+          </ProcessStep>
+          <ProcessStep title="2. Sign Message" status={signatureStatus} details={isSigning ? 'Check Wallet' : signature ? 'Signed' : signError ? 'Rejected' : 'Pending'}/>
+          <ProcessStep title="3. Send Transaction" status={transactionStatus} details={isSending ? 'Check Wallet' : isConfirming ? 'Confirming...' : isConfirmed ? 'Success' : (sendTransactionError || confirmError) ? 'Failed' : 'Pending'}/>
         </div>
         
         {!isConnected ? (
            <button 
               onClick={() => open()} 
-              className="w-full bg-cyan-500 hover:bg-cyan-600 text-gray-900 font-bold py-3 px-4 rounded-lg text-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-opacity-75"
+              className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:opacity-90 text-white font-bold py-3 px-4 rounded-lg text-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-cyan-400/50"
             >
               Connect Wallet
             </button>
@@ -194,62 +282,14 @@ function WalletDapp() {
             </button>
         )}
 
-        <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-4">
-            <div className="flex justify-between items-center">
-                <span className="text-gray-400 font-semibold">Transaction Status</span>
-                <TransactionStatusDisplay />
-            </div>
+        <div className="space-y-4 pt-4 border-t border-gray-700/50">
+          {signature && <ResultDisplay label="Signature Result" value={signature} />}
+          {hash && <ResultDisplay label="Transaction Hash" value={hash} />}
+          {signError && <ErrorDisplay label="Signature Error" message={`${signError.name}: ${signError.message}`} />}
+          {(sendTransactionError || confirmError) && (
+            <ErrorDisplay label="Transaction Error" message={(sendTransactionError || confirmError)?.shortMessage || (sendTransactionError || confirmError)?.message || "An unknown error occurred."} />
+          )}
         </div>
-
-        {signature && (
-          <div className="space-y-2">
-            <label htmlFor="signature" className="block text-sm font-medium text-gray-400">Signature Result:</label>
-            <textarea
-              id="signature"
-              readOnly
-              value={signature}
-              className="w-full h-32 p-3 bg-gray-900 border border-gray-600 rounded-md text-gray-300 text-xs font-mono focus:ring-cyan-500 focus:border-cyan-500 break-all"
-              onClick={(e) => (e.target as HTMLTextAreaElement).select()}
-            />
-          </div>
-        )}
-
-        {hash && (
-          <div className="space-y-2">
-            <label htmlFor="txHash" className="block text-sm font-medium text-gray-400">Transaction Hash:</label>
-            <textarea
-              id="txHash"
-              readOnly
-              value={hash}
-              className="w-full h-20 p-3 bg-gray-900 border border-gray-600 rounded-md text-gray-300 text-xs font-mono focus:ring-cyan-500 focus:border-cyan-500 break-all"
-              onClick={(e) => (e.target as HTMLTextAreaElement).select()}
-            />
-          </div>
-        )}
-
-        {error && (
-          <div className="space-y-2">
-            <label htmlFor="error" className="block text-sm font-medium text-red-400">Signature Error Details:</label>
-            <div
-              id="error"
-              className="w-full p-3 bg-red-900/20 border border-red-500/50 rounded-md text-red-300 text-xs font-mono"
-            >
-              <p>{error.name}: {error.message}</p>
-            </div>
-          </div>
-        )}
-
-        {(sendTransactionError || confirmError) && (
-          <div className="space-y-2">
-            <label htmlFor="txError" className="block text-sm font-medium text-red-400">Transaction Error Details:</label>
-            <div
-              id="txError"
-              className="w-full p-3 bg-red-900/20 border border-red-500/50 rounded-md text-red-300 text-xs font-mono"
-            >
-              <p>{(sendTransactionError || confirmError)?.shortMessage || (sendTransactionError || confirmError)?.message}</p>
-            </div>
-          </div>
-        )}
 
       </div>
       <footer className="text-center mt-8 text-gray-500 text-sm">
