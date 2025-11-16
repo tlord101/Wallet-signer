@@ -118,83 +118,63 @@ pre {
    line-height: 25px;
 }
 
-/* Minimal centered app layout */
-.app {
+/* Minimal centered layout for redesigned page */
+.container {
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 20px;
   padding: 24px;
 }
 
-.card {
-  width: 100%;
-  max-width: 420px;
-  background: rgba(255,255,255,0.9);
-  border-radius: 14px;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.08);
-  padding: 28px;
-  text-align: center;
-}
-
 .logo {
-  width: 84px;
-  height: 84px;
+  width: 96px;
+  height: 96px;
   object-fit: contain;
-  margin: 6px auto 12px;
+  opacity: 0.95;
 }
 
 .title {
   font-size: 20px;
-  margin-bottom: 18px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
 }
 
-.connect-btn {
+.primary {
   background: #000;
   color: #fff;
   border: none;
-  padding: 14px 20px;
-  border-radius: 10px;
-  font-size: 16px;
-  cursor: pointer;
+  padding: 14px 28px;
+  border-radius: 999px;
   font-weight: 700;
-  width: 100%;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+  transition: transform 160ms ease, box-shadow 160ms ease;
 }
 
-.connect-btn:active { transform: translateY(1px); }
+.primary:active { transform: translateY(1px) }
+.primary[disabled] { opacity: 0.6; cursor: default }
 
-.loader {
-  margin-top: 20px;
-  display: none;
-  align-items: center;
-  gap: 12px;
-  justify-content: center;
-  flex-direction: column;
-}
+/* Loader */
+.loader-hidden { display: none }
+.loader-visible { display: flex; gap: 16px; align-items: center; flex-direction: column; }
 
 .spinner {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: conic-gradient(#000 0% 25%, rgba(0,0,0,0.12) 25% 100%);
+  border: 8px solid rgba(0,0,0,0.08);
+  border-top-color: #000;
   animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+@keyframes spin { to { transform: rotate(360deg) } }
 
-.loader-message {
-  font-size: 14px;
-  color: #333;
+.feedback {
+  max-width: 420px;
+  text-align: center;
+  color: #222;
+  font-weight: 600;
 }
-
-.result {
-  margin-top: 16px;
-  font-size: 13px;
-  color: #111;
-  word-break: break-all;
-}
-
-/* Utility to show loader */
-.loader.show { display: flex; }

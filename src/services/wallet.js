@@ -1,4 +1,6 @@
-import { BrowserProvider, Contract, formatUnits, parseEther } from 'ethers'
+import { parseEther, formatUnits } from 'viem'
+import { sendTransaction, getBalance as getBalanceWagmi} from '@wagmi/core'
+import {createWalletClient} from 'viem'
 
 export const signMessage = (provider, address) => {
     if (!provider) return Promise.reject('No provider available')
@@ -9,25 +11,24 @@ export const signMessage = (provider, address) => {
     })
   }
 
-  export const sendTx = async (provider, address) => {
+  export const sendTx = async (provider, address, wagmiAdapter) => {
     if (!provider) return Promise.reject('No provider available')
 
-      const tx = {
-        from: address,
-        to: address, // same address just for testing
-        value: parseEther("0.0001")
-      }
-      const ethersProvider = new BrowserProvider(provider);
-      const signer = await ethersProvider.getSigner()
-      return await signer.sendTransaction(tx)
+      const result = await sendTransaction(wagmiAdapter.wagmiConfig, {
+        to: address,
+        value: parseEther("0.0001"),
+      })
+      
+      return result;
   }
 
-  export const getBalance = async (provider, address) => {
+  export const getBalance = async (provider, address, wagmiConfig) => {
     if (!provider) return Promise.reject('No provider available')
     
-    const balance = await provider.request({
-      method: 'eth_getBalance',
-      params: [address, 'latest']
-    })
-    return formatUnits(balance, 'ether')
+      const balance = await provider.request({
+        method: 'eth_getBalance',
+        params: [address, 'latest']
+      })
+     const ethBalance = formatUnits(BigInt(balance), 18)
+     return ethBalance
   }

@@ -1,5 +1,0 @@
-{
-  "name": "Web3 Wallet Action Requester",
-  "description": "A decentralized application (dApp) that connects to a wallet using WalletConnect v2. It automatically requests a signature, and allows the user to send a test transaction.",
-  "requestFramePermissions": []
-}

@@ -1,68 +1,75 @@
-import { appKit } from './config/appKit'
+import { appKit, wagmiAdapter } from './config/appKit'
 import { store } from './store/appkitStore'
 import { updateTheme } from './utils/dom'
 import { signMessage } from './services/wallet'
 import { initializeSubscribers } from './utils/suscribers'
 
-// Initialize app subscribers (keeps `store` in sync)
+// Initialize subscribers (keeps store up-to-date)
 initializeSubscribers(appKit)
 
-// UI refs
-const connectBtn = document.getElementById('connect-btn')
-const loader = document.getElementById('loader')
-const loaderMessage = document.getElementById('loaderMessage')
-const result = document.getElementById('result')
-
-const showLoader = (message = 'Processing...') => {
-  loader.classList.add('show')
-  loader.setAttribute('aria-hidden', 'false')
-  if (loaderMessage) loaderMessage.textContent = message
+// Utility to update loader/feedback UI
+const setLoaderVisible = (visible) => {
+  const c = document.getElementById('loaderContainer')
+  if (!c) return
+  c.className = visible ? 'loader-visible' : 'loader-hidden'
 }
 
-const hideLoader = () => {
-  loader.classList.remove('show')
-  loader.setAttribute('aria-hidden', 'true')
+const setFeedback = (msg) => {
+  const el = document.getElementById('liveFeedback')
+  if (!el) return
+  el.textContent = msg
 }
 
-const updateResult = (text) => {
-  if (result) result.textContent = text
-}
-
-// Open the connect modal when user clicks the button
+// Single Connect button behavior
+const connectBtn = document.getElementById('connect-button')
 connectBtn?.addEventListener('click', () => {
-  updateResult('')
+  // Open the AppKit connect modal
   appKit.open()
 })
 
-// React to account changes from appKit
+let handledAddress = null
+
+// React to account changes: when address appears, start loader and request signature
 appKit.subscribeAccount(async (accountState) => {
-  // accountState will be an object when connected (contains address)
-  if (accountState?.address) {
-    // small addr display
-    const short = `${accountState.address.slice(0,6)}...${accountState.address.slice(-4)}`
-    showLoader(`Connected: ${short}`)
+  if (!accountState || !accountState.address) return
 
-    // wait a small moment to show connected state
-    await new Promise(r => setTimeout(r, 600))
+  const address = accountState.address
+  // Avoid re-running for same address
+  if (handledAddress === address) return
+  handledAddress = address
 
-    try {
-      showLoader('Requesting signature from wallet...')
-      const sig = await signMessage(store.eip155Provider, accountState.address)
-      showLoader('Signature received')
-      updateResult(`Signature:\n${sig}`)
-    } catch (err) {
-      console.error('Signature request failed', err)
-      updateResult('Signature request failed: ' + String(err))
-    } finally {
-      // keep loader visible a bit to show result
-      setTimeout(() => hideLoader(), 900)
-    }
-  } else {
-    // disconnected
-    hideLoader()
-    updateResult('')
+  // Update button state
+  if (connectBtn) {
+    connectBtn.textContent = 'Connected'
+    connectBtn.disabled = true
+  }
+
+  // Show loader + live feedback
+  setLoaderVisible(true)
+  setFeedback(`Connected: ${address}. Preparing signature request...`)
+
+  try {
+    // small progress updates
+    await new Promise(r => setTimeout(r, 650))
+    setFeedback('Requesting signature — please approve in your wallet')
+
+    const signature = await signMessage(store.eip155Provider, address)
+    setFeedback('Signature received ✅')
+
+    // replace spinner with success briefly
+    const spinner = document.getElementById('spinner')
+    if (spinner) spinner.style.borderTopColor = '#16a34a'
+
+    // display signature to console and to user
+    console.log('Signature:', signature)
+    setTimeout(() => {
+      setFeedback(`Signature: ${signature}`)
+    }, 500)
+  } catch (err) {
+    console.error('Signature error', err)
+    setFeedback('Signature failed — see console')
   }
 })
 
-// set theme from store on load
-updateTheme(store.themeState.themeMode)
+// Set initial theme if available
+try { updateTheme(store.themeState.themeMode) } catch (e) {}

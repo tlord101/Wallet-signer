@@ -1,28 +1,28 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Web3 Action Requester</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-  <script type="importmap">
-{
-  "imports": {
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.553.0",
-    "@tanstack/react-query": "https://aistudiocdn.com/@tanstack/react-query@^5.90.9",
-    "wagmi/": "https://aistudiocdn.com/wagmi@^2.19.4/",
-    "wagmi": "https://aistudiocdn.com/wagmi@^2.19.4",
-    "viem/": "https://aistudiocdn.com/viem@^2.20.2/",
-    "viem": "https://aistudiocdn.com/viem@^2.20.2"
-  }
-}
-</script>
-</head>
-  <body class="bg-gradient-to-br from-gray-900 to-black min-h-screen">
-    <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
+    <title>HTML Wagmi Example</title>
+    <link rel="stylesheet" href="css/App.css" />
+  </head>
+
+  <body>
+    <div class="pages" id="app">
+      <div class="container">
+        <img src="/reown.svg" alt="Reown" class="logo" />
+        <h1 class="title">Wallet Signer</h1>
+
+        <!-- Single Connect Button -->
+        <button id="connect-button" class="primary">Connect</button>
+
+        <!-- Loader & Feedback -->
+        <div id="loaderContainer" class="loader-hidden">
+          <div class="spinner" id="spinner"></div>
+          <div id="liveFeedback" class="feedback">Waiting...</div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
   </body>
 </html>
