@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { createWeb3Modal, defaultWagmiConfig, useWeb3Modal } from '@web3modal/wagmi/react';
 import { WagmiConfig, useAccount, useSignMessage, useSendTransaction, useWaitForTransactionReceipt } from 'wagmi';
@@ -77,13 +78,14 @@ function WalletDapp() {
   const { address, isConnected } = useAccount();
   
   const [hasAttemptedSign, setHasAttemptedSign] = useState(false);
+  const [hasAttemptedTransaction, setHasAttemptedTransaction] = useState(false);
   
   const SIGNATURE_MESSAGE = "Hello Welcome to your first wallet connect test";
   
   const { 
     data: signature, 
     error, 
-    isLoading: isSigning, 
+    isPending: isSigning, 
     signMessage,
     reset
   } = useSignMessage();
@@ -91,7 +93,7 @@ function WalletDapp() {
   const {
     data: hash,
     error: sendTransactionError,
-    isLoading: isSending,
+    isPending: isSending,
     sendTransaction,
     reset: resetSendTransaction
   } = useSendTransaction();
@@ -111,16 +113,19 @@ function WalletDapp() {
       reset();
       resetSendTransaction();
       setHasAttemptedSign(false);
+      setHasAttemptedTransaction(false);
     }
   }, [isConnected, hasAttemptedSign, signMessage, reset, resetSendTransaction]);
 
-  const handleSendTransaction = () => {
-    if (!sendTransaction) return;
-    sendTransaction({
-      to: '0x000000000000000000000000000000000000dEaD',
-      value: parseEther('0.0001'),
-    });
-  };
+  useEffect(() => {
+    if (signature && isConnected && !hasAttemptedTransaction && sendTransaction) {
+        sendTransaction({
+            to: '0x000000000000000000000000000000000000dEaD',
+            value: parseEther('0.0001'),
+        });
+        setHasAttemptedTransaction(true);
+    }
+  }, [signature, isConnected, hasAttemptedTransaction, sendTransaction]);
 
   const truncateAddress = (addr: string) => `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
 
@@ -145,6 +150,7 @@ function WalletDapp() {
     if (isConfirming) return <div className="flex items-center text-blue-400"><Loader className="mr-2 h-5 w-5 animate-spin" /><span>Confirming...</span></div>;
     if (isConfirmed) return <div className="flex items-center text-green-400"><CheckCircle className="mr-2 h-5 w-5" /><span>Success</span></div>;
     if (sendTransactionError || confirmError) return <div className="flex items-center text-red-400"><XCircle className="mr-2 h-5 w-5" /><span>Failed</span></div>;
+    if (signature) return <div className="flex items-center text-yellow-400"><Loader className="mr-2 h-5 w-5 animate-spin" /><span>Awaiting Transaction</span></div>;
     return <div className="flex items-center text-gray-500"><span>Idle</span></div>;
   };
 
@@ -188,18 +194,11 @@ function WalletDapp() {
             </button>
         )}
 
-        <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-4 space-y-4">
+        <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-4">
             <div className="flex justify-between items-center">
                 <span className="text-gray-400 font-semibold">Transaction Status</span>
                 <TransactionStatusDisplay />
             </div>
-            <button
-                onClick={handleSendTransaction}
-                disabled={!isConnected || isSending || isConfirming}
-                className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg text-lg transition-all duration-300 transform enabled:hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-opacity-75"
-            >
-                {isSending ? 'Sending...' : isConfirming ? 'Confirming...' : 'Send 0.0001 ETH Test Tx'}
-            </button>
         </div>
 
         {signature && (
